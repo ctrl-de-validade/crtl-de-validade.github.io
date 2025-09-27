@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Validade v2</title>
+    <style>
+        /* ... (todo o CSS permanece igual) ... */
+                /* CSS Reset e Configurações Globais */
+        :root {
+            --color-bg: #f8f9fa;
+            --color-surface: #ffffff;
+            --color-primary: #007bff;
+            --color-on-primary: #ffffff;
+            --color-text-primary: #212529;
+            --color-text-secondary: #6c757d;
+            --color-border: #dee2e6;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+
+            /* Cores para status dinâmico */
+            --status-danger: #dc3545;
+            --status-warning: #fd7e14;
+            --status-approaching: #20c997;
+            --status-safe: var(--color-text-primary);
+            --status-expired: var(--color-text-secondary);
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Cabeçalho */
+        header {
+            text-align: center;
+            padding: 1.5rem 0;
+        }
+        header h1 {
+            font-weight: 800;
+        }
+
+        /* Controles Principais */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .view-switcher button {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--color-border);
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+            cursor: pointer;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .view-switcher button.active {
+            background-color: var(--color-primary);
+            color: var(--color-on-primary);
+            border-color: var(--color-primary);
+        }
+
+        .btn-add {
+            background-color: var(--color-primary);
+            color: var(--color-on-primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .btn-add:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        /* Lista de Produtos */
+        #product-list .product-item {
+            background-color: var(--color-surface);
+            margin-bottom: 1rem;
+            padding: 1.25rem;
+            border-radius: 8px;
+            border-left: 5px solid var(--color-border); /* Cor padrão */
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        #product-list .product-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        #product-list .product-item.is-expired {
+            background-color: #f8f9fa;
+        }
+        
+        #product-list .product-item.is-expired h3, 
+        #product-list .product-item.is-expired p {
+            text-decoration: line-through;
+        }
+
+        .product-item .info {
+            flex-grow: 1;
+            padding-right: 1rem;
+        }
+
+        .product-item .info h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.25rem;
+            transition: color 0.3s, font-weight 0.3s;
+        }
+
+        .product-item .info p {
+            color: var(--color-text-secondary);
+            font-size: 0.9rem;
+            font-weight: 700
+        }
+        
+        .product-item .actions button {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            margin-left: 1rem;
+            transition: color 0.2s;
+        }
+        
+        .product-item .actions button:hover {
+            color: var(--color-primary);
+        }
+        
+        /* Calendário */
+        #calendar-view {
+            background-color: var(--color-surface);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .calendar-header button {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            font-size: 1.8rem;
+            cursor: pointer;
+        }
+        
+        .calendar-header h2 {
+            font-weight: 700;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+
+        .calendar-day-name, .calendar-day {
+            text-align: center;
+            padding: 0.5rem 0;
+        }
+        
+        .calendar-day-name {
+            font-weight: bold;
+            color: var(--color-text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .calendar-day {
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+        
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+
+        .calendar-day.today {
+            background-color: var(--color-primary);
+            color: var(--color-on-primary);
+            font-weight: bold;
+        }
+        
+        .calendar-day .events-container {
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+        }
+
+        .calendar-day .event {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        
+        /* Modal/Dialog para Adicionar/Editar */
+        #product-dialog {
+            background-color: var(--color-surface);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        #product-dialog::backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(3px); }
+        #product-form h2 { margin-bottom: 1.5rem; text-align: center; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary); }
+        .form-group input { width: 100%; padding: 0.75rem; background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: 5px; color: var(--color-text-primary); font-size: 1rem; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
+        .form-actions button { padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; border: none; font-size: 1rem; font-weight: 600; }
+        .btn-cancel { background-color: var(--color-surface); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
+        .btn-save { background-color: var(--color-primary); color: var(--color-on-primary); }
+
+        /* Esconder views por padrão */
+        #calendar-view, #product-list { display: none; }
+        #calendar-view.active, #product-list.active { display: block; }
+    </style>
+    <!-- Incluir a biblioteca do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header><h1>Controle de Validade</h1></header>
+        <main>
+            <div class="controls">
+                <div class="view-switcher">
+                    <button id="btn-list-view" class="active">Lista</button>
+                    <button id="btn-calendar-view">Calendário</button>
+                </div>
+                <button class="btn-add" id="btn-add-product">✚ Adicionar Produto</button>
+            </div>
+            <section id="product-list" class="active"></section>
+            <section id="calendar-view">
+                <div class="calendar-header">
+                    <button id="prev-month">❮</button>
+                    <h2 id="current-month-year"></h2>
+                    <button id="next-month">❯</button>
+                </div>
+                <div class="calendar-grid"></div>
+            </section>
+        </main>
+    </div>
+
+    <dialog id="product-dialog">
+        <form id="product-form">
+            <h2 id="form-title">Adicionar Produto</h2>
+            <input type="hidden" id="product-id">
+            <div class="form-group">
+                <label for="product-name">Nome do Produto</label>
+                <input type="text" id="product-name" required>
+            </div>
+            <div class="form-group">
+                <label for="product-quantity">Quantidade</label>
+                <input type="text" id="product-quantity" required>
+            </div>
+            <div class="form-group">
+                <label for="product-expiry">Data de Validade</label>
+                <input type="date" id="product-expiry" required>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" id="btn-cancel">Cancelar</button>
+                <button type="submit" class="btn-save">Salvar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>
+        // Configuração do Supabase
+        const supabaseUrl = 'https://qbrwyvflpazsagfameff.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFicnd5dmZscGF6c2FnZmFtZWZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg5MDU4MTIsImV4cCI6MjA3NDQ4MTgxMn0.V8CqgMWpQ33vKa9wRFV010iqQ3XCytaUlsrh6Xyh0o4';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elementos da DOM (mantidos iguais)
+            const productList = document.getElementById('product-list');
+            const calendarView = document.getElementById('calendar-view');
+            const btnListView = document.getElementById('btn-list-view');
+            const btnCalendarView = document.getElementById('btn-calendar-view');
+            const btnAddProduct = document.getElementById('btn-add-product');
+            const productDialog = document.getElementById('product-dialog');
+            const productForm = document.getElementById('product-form');
+            const btnCancel = document.getElementById('btn-cancel');
+            const formTitle = document.getElementById('form-title');
+            const productIdInput = document.getElementById('product-id');
+            const calendarGrid = document.querySelector('.calendar-grid');
+            const currentMonthYearEl = document.getElementById('current-month-year');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+
+            let products = [];
+            let currentDate = new Date();
+
+            // Funções do Supabase
+            const loadProducts = async () => {
+                const { data, error } = await supabase
+                    .from('products')
+                    .select('*')
+                    .order('expiry', { ascending: true });
+
+                if (error) {
+                    console.error('Erro ao carregar produtos:', error);
+                    return [];
+                }
+                return data || [];
+            };
+
+            const saveProduct = async (product) => {
+                if (product.id) {
+                    // Atualizar produto existente
+                    const { data, error } = await supabase
+                        .from('products')
+                        .update(product)
+                        .eq('id', product.id)
+                        .select();
+
+                    if (error) {
+                        console.error('Erro ao atualizar produto:', error);
+                        return null;
+                    }
+                    return data[0];
+                } else {
+                    // Criar novo produto
+                    const { data, error } = await supabase
+                        .from('products')
+                        .insert([product])
+                        .select();
+
+                    if (error) {
+                        console.error('Erro ao criar produto:', error);
+                        return null;
+                    }
+                    return data[0];
+                }
+            };
+
+            const deleteProduct = async (id) => {
+                const { error } = await supabase
+                    .from('products')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    console.error('Erro ao deletar produto:', error);
+                    return false;
+                }
+                return true;
+            };
+
+            // Lógica de status (mantida igual)
+            const getStatus = (expiryDate) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const expiry = new Date(expiryDate + 'T00:00:00');
+                const diffTime = expiry - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays < 0) return { 
+                    text: `Vencido há ${Math.abs(diffDays)} dia(s)`, 
+                    color: 'var(--status-expired)', 
+                    fontWeight: 400, 
+                    isExpired: true 
+                };
+                if (diffDays == 0) return { 
+                    text: `VENCE HOJE!!!`, 
+                    color: 'var(--status-danger)', 
+                    fontWeight: 900, 
+                    isExpired: false 
+                };
+                if (diffDays <= 7) return { 
+                    text: `Vence em ${diffDays} dias`, 
+                    color: 'var(--status-danger)', 
+                    fontWeight: 800, 
+                    isExpired: false 
+                };
+                if (diffDays <= 14) return { 
+                    text: `Vence em ${diffDays} dias`, 
+                    color: 'var(--status-warning)', 
+                    fontWeight: 700, 
+                    isExpired: false 
+                };
+                 if (diffDays <= 30) return { 
+                    text: `Vence em ${diffDays} dias`, 
+                    color: 'var(--status-approaching)', 
+                    fontWeight: 600, 
+                    isExpired: false 
+                };
+                return { 
+                    text: `Vence em ${diffDays} dias`, 
+                    color: 'var(--status-safe)', 
+                    fontWeight: 500, 
+                    isExpired: false 
+                };
+            };
+
+            // Renderização (adaptada para async)
+            const renderListView = () => {
+                productList.innerHTML = '';
+                const sortedProducts = [...products].sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+
+                if (sortedProducts.length === 0) {
+                    productList.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">Nenhum produto cadastrado.</p>';
+                    return;
+                }
+                
+                sortedProducts.forEach(product => {
+                    const status = getStatus(product.expiry);
+                    const item = document.createElement('div');
+                    item.className = 'product-item';
+                    item.dataset.id = product.id;
+                    if (status.isExpired) {
+                        item.classList.add('is-expired');
+                    }
+                    
+                    item.style.borderColor = status.color;
+
+                    item.innerHTML = `
+                        <div class="info">
+                            <h3 class="product-name">${product.name}</h3>
+                            <p>Quantidade: ${product.quantity} | Validade: <a style="color:red;">${new Date(product.expiry + 'T00:00:00').toLocaleDateString('pt-BR')} </a> (${status.text})</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-edit" title="Editar">✏️</button>
+                            <button class="btn-delete" title="Excluir">🗑️</button>
+                        </div>
+                    `;
+                    
+                    const productNameEl = item.querySelector('.product-name');
+                    productNameEl.style.color = status.color;
+                    productNameEl.style.fontWeight = status.fontWeight;
+
+                    productList.appendChild(item);
+                });
+            };
+
+            const renderCalendar = () => {
+                calendarGrid.innerHTML = `
+                    <div class="calendar-day-name">D</div><div class="calendar-day-name">S</div><div class="calendar-day-name">T</div>
+                    <div class="calendar-day-name">Q</div><div class="calendar-day-name">Q</div><div class="calendar-day-name">S</div><div class="calendar-day-name">S</div>`;
+                
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+
+                currentMonthYearEl.textContent = `${currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}`;
+
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarGrid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'calendar-day';
+                    dayEl.textContent = day;
+                    
+                    const thisDate = new Date(year, month, day);
+                    if (thisDate.getTime() === today.getTime()) {
+                        dayEl.classList.add('today');
+                    }
+                    
+                    const expiringProducts = products.filter(p => {
+                        const expiryDate = new Date(p.expiry + 'T00:00:00');
+                        return expiryDate.getFullYear() === year && expiryDate.getMonth() === month && expiryDate.getDate() === day;
+                    });
+                    
+                    if (expiringProducts.length > 0) {
+                        const eventsContainer = document.createElement('div');
+                        eventsContainer.className = 'events-container';
+                        
+                        expiringProducts.slice(0, 3).forEach(p => {
+                            const status = getStatus(p.expiry);
+                            const eventEl = document.createElement('div');
+                            eventEl.className = 'event';
+                            eventEl.style.backgroundColor = status.color;
+                            eventsContainer.appendChild(eventEl);
+                        });
+                        dayEl.appendChild(eventsContainer);
+                    }
+                    
+                    calendarGrid.appendChild(dayEl);
+                }
+            };
+
+            const render = () => {
+                renderListView();
+                renderCalendar();
+            };
+
+            // Lógica de dados atualizada para Supabase
+            const handleFormSubmit = async (e) => {
+                e.preventDefault();
+                const id = productIdInput.value;
+                const productData = {
+                    name: document.getElementById('product-name').value,
+                    quantity: document.getElementById('product-quantity').value,
+                    expiry: document.getElementById('product-expiry').value,
+                };
+
+                if (id) {
+                    productData.id = id;
+                    const updatedProduct = await saveProduct(productData);
+                    if (updatedProduct) {
+                        products = products.map(p => p.id === id ? updatedProduct : p);
+                    }
+                } else {
+                    const newProduct = await saveProduct(productData);
+                    if (newProduct) {
+                        products.push(newProduct);
+                    }
+                }
+
+                render();
+                productDialog.close();
+            };
+
+            const openEditDialog = (id) => {
+                const product = products.find(p => p.id === id);
+                if (product) {
+                    formTitle.textContent = 'Editar Produto';
+                    productIdInput.value = product.id;
+                    document.getElementById('product-name').value = product.name;
+                    document.getElementById('product-quantity').value = product.quantity;
+                    document.getElementById('product-expiry').value = product.expiry;
+                    productDialog.showModal();
+                }
+            };
+
+            const handleDeleteProduct = async (id) => {
+                if (confirm('Tem certeza que deseja excluir este produto?')) {
+                    const success = await deleteProduct(id);
+                    if (success) {
+                        products = products.filter(p => p.id !== id);
+                        render();
+                    }
+                }
+            };
+
+            // Event listeners (mantidos com pequenas adaptações)
+            btnListView.addEventListener('click', () => {
+                productList.classList.add('active');
+                calendarView.classList.remove('active');
+                btnListView.classList.add('active');
+                btnCalendarView.classList.remove('active');
+            });
+
+            btnCalendarView.addEventListener('click', () => {
+                productList.classList.remove('active');
+                calendarView.classList.add('active');
+                btnListView.classList.remove('active');
+                btnCalendarView.classList.add('active');
+            });
+
+            btnAddProduct.addEventListener('click', () => {
+                formTitle.textContent = 'Adicionar Produto';
+                productForm.reset();
+                productIdInput.value = '';
+                productDialog.showModal();
+            });
+
+            btnCancel.addEventListener('click', () => {
+                productDialog.close();
+            });
+
+            productForm.addEventListener('submit', handleFormSubmit);
+
+            productList.addEventListener('click', (e) => {
+                const editBtn = e.target.closest('.btn-edit');
+                const deleteBtn = e.target.closest('.btn-delete');
+                if (editBtn) {
+                    openEditDialog(editBtn.closest('.product-item').dataset.id);
+                }
+                if (deleteBtn) {
+                    handleDeleteProduct(deleteBtn.closest('.product-item').dataset.id);
+                }
+            });
+
+            prevMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            // Inicialização
+            const init = async () => {
+                products = await loadProducts();
+                render();
+            };
+
+            init();
+        });
+    </script>
+</body>
+</html>
