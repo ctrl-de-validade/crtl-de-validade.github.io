@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Validade v2</title>
     <style>
-        /* ... (todo o CSS permanece igual) ... */
-                /* CSS Reset e Configurações Globais */
         :root {
             --color-bg: #f8f9fa;
             --color-surface: #ffffff;
@@ -106,12 +104,12 @@
             margin-bottom: 1rem;
             padding: 1.25rem;
             border-radius: 8px;
-            border-left: 5px solid var(--color-border); /* Cor padrão */
+            border-left: 5px solid var(--color-border);
             box-shadow: var(--shadow);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s ease;
         }
         
         #product-list .product-item:hover {
@@ -142,21 +140,33 @@
         .product-item .info p {
             color: var(--color-text-secondary);
             font-size: 0.9rem;
-            font-weight: 700
+        }
+        
+        .product-item .actions {
+            display: flex;
+            gap: 0.5rem;
         }
         
         .product-item .actions button {
             background: none;
             border: none;
-            color: var(--color-text-secondary);
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             cursor: pointer;
-            margin-left: 1rem;
-            transition: color 0.2s;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
         }
         
         .product-item .actions button:hover {
+            background-color: var(--color-bg);
+        }
+        
+        .btn-edit:hover {
             color: var(--color-primary);
+        }
+        
+        .btn-delete:hover {
+            color: var(--status-danger);
         }
         
         /* Calendário */
@@ -207,6 +217,10 @@
             border-radius: 50%;
             transition: background-color 0.2s;
             position: relative;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .calendar-day.other-month {
@@ -245,21 +259,127 @@
             max-width: 500px;
             padding: 1.5rem;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
         }
         
-        #product-dialog::backdrop { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(3px); }
-        #product-form h2 { margin-bottom: 1.5rem; text-align: center; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; margin-bottom: 0.5rem; color: var(--color-text-secondary); }
-        .form-group input { width: 100%; padding: 0.75rem; background-color: var(--color-bg); border: 1px solid var(--color-border); border-radius: 5px; color: var(--color-text-primary); font-size: 1rem; }
-        .form-actions { display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem; }
-        .form-actions button { padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; border: none; font-size: 1rem; font-weight: 600; }
-        .btn-cancel { background-color: var(--color-surface); color: var(--color-text-secondary); border: 1px solid var(--color-border); }
-        .btn-save { background-color: var(--color-primary); color: var(--color-on-primary); }
+        #product-dialog::backdrop { 
+            background-color: rgba(0, 0, 0, 0.5); 
+            backdrop-filter: blur(3px); 
+        }
+        
+        #product-form h2 { 
+            margin-bottom: 1.5rem; 
+            text-align: center; 
+        }
+        
+        .form-group { 
+            margin-bottom: 1rem; 
+        }
+        
+        .form-group label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            color: var(--color-text-secondary); 
+            font-weight: 500;
+        }
+        
+        .form-group input { 
+            width: 100%; 
+            padding: 0.75rem; 
+            background-color: var(--color-bg); 
+            border: 1px solid var(--color-border); 
+            border-radius: 5px; 
+            color: var(--color-text-primary); 
+            font-size: 1rem; 
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+        
+        .form-actions { 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 1rem; 
+            margin-top: 1.5rem; 
+        }
+        
+        .form-actions button { 
+            padding: 0.75rem 1.5rem; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            border: none; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            transition: background-color 0.2s;
+        }
+        
+        .btn-cancel { 
+            background-color: var(--color-surface); 
+            color: var(--color-text-secondary); 
+            border: 1px solid var(--color-border); 
+        }
+        
+        .btn-cancel:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .btn-save { 
+            background-color: var(--color-primary); 
+            color: var(--color-on-primary); 
+        }
+        
+        .btn-save:hover {
+            background-color: #0056b3;
+        }
 
         /* Esconder views por padrão */
         #calendar-view, #product-list { display: none; }
         #calendar-view.active, #product-list.active { display: block; }
+        
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--color-text-secondary);
+        }
+        
+        /* Feedback visual para ações */
+        .deleting {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        /* Animação para remoção */
+        .removing {
+            transform: translateX(100%);
+            opacity: 0;
+            height: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            overflow: hidden;
+        }
+        
+        /* Overlay para modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
     </style>
     <!-- Incluir a biblioteca do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -276,7 +396,9 @@
                 </div>
                 <button class="btn-add" id="btn-add-product">✚ Adicionar Produto</button>
             </div>
-            <section id="product-list" class="active"></section>
+            <section id="product-list" class="active">
+                <div class="loading">Carregando produtos...</div>
+            </section>
             <section id="calendar-view">
                 <div class="calendar-header">
                     <button id="prev-month">❮</button>
@@ -318,7 +440,7 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Elementos da DOM (mantidos iguais)
+            // Elementos da DOM
             const productList = document.getElementById('product-list');
             const calendarView = document.getElementById('calendar-view');
             const btnListView = document.getElementById('btn-list-view');
@@ -329,6 +451,9 @@
             const btnCancel = document.getElementById('btn-cancel');
             const formTitle = document.getElementById('form-title');
             const productIdInput = document.getElementById('product-id');
+            const productNameInput = document.getElementById('product-name');
+            const productQuantityInput = document.getElementById('product-quantity');
+            const productExpiryInput = document.getElementById('product-expiry');
             const calendarGrid = document.querySelector('.calendar-grid');
             const currentMonthYearEl = document.getElementById('current-month-year');
             const prevMonthBtn = document.getElementById('prev-month');
@@ -339,61 +464,76 @@
 
             // Funções do Supabase
             const loadProducts = async () => {
-                const { data, error } = await supabase
-                    .from('products')
-                    .select('*')
-                    .order('expiry', { ascending: true });
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .order('expiry', { ascending: true });
 
-                if (error) {
-                    console.error('Erro ao carregar produtos:', error);
+                    if (error) {
+                        console.error('Erro ao carregar produtos:', error);
+                        alert('Erro ao carregar produtos. Verifique o console para mais detalhes.');
+                        return [];
+                    }
+                    return data || [];
+                } catch (error) {
+                    console.error('Erro inesperado:', error);
                     return [];
                 }
-                return data || [];
             };
 
             const saveProduct = async (product) => {
-                if (product.id) {
-                    // Atualizar produto existente
-                    const { data, error } = await supabase
-                        .from('products')
-                        .update(product)
-                        .eq('id', product.id)
-                        .select();
+                try {
+                    if (product.id) {
+                        // Atualizar produto existente
+                        const { data, error } = await supabase
+                            .from('products')
+                            .update({
+                                name: product.name,
+                                quantity: product.quantity,
+                                expiry: product.expiry
+                            })
+                            .eq('id', product.id)
+                            .select();
 
-                    if (error) {
-                        console.error('Erro ao atualizar produto:', error);
-                        return null;
-                    }
-                    return data[0];
-                } else {
-                    // Criar novo produto
-                    const { data, error } = await supabase
-                        .from('products')
-                        .insert([product])
-                        .select();
+                        if (error) throw error;
+                        return data[0];
+                    } else {
+                        // Criar novo produto
+                        const { data, error } = await supabase
+                            .from('products')
+                            .insert([{
+                                name: product.name,
+                                quantity: product.quantity,
+                                expiry: product.expiry
+                            }])
+                            .select();
 
-                    if (error) {
-                        console.error('Erro ao criar produto:', error);
-                        return null;
+                        if (error) throw error;
+                        return data[0];
                     }
-                    return data[0];
+                } catch (error) {
+                    console.error('Erro ao salvar produto:', error);
+                    throw error;
                 }
             };
 
             const deleteProduct = async (id) => {
-                const { error } = await supabase
-                    .from('products')
-                    .delete()
-                    .eq('id', id);
+                try {
+                    const { error } = await supabase
+                        .from('products')
+                        .delete()
+                        .eq('id', id);
 
-                if (error) {
+                    if (error) throw error;
+                    return true;
+                } catch (error) {
                     console.error('Erro ao deletar produto:', error);
-                    return false;
+                    throw error;
                 }
-                return true;
             };
 
-            // Lógica de status (mantida igual)
+            // Lógica de status
             const getStatus = (expiryDate) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -407,25 +547,25 @@
                     fontWeight: 400, 
                     isExpired: true 
                 };
-                if (diffDays == 0) return { 
-                    text: `VENCE HOJE!!!`, 
+                if (diffDays === 0) return { 
+                    text: `Vence hoje!`, 
+                    color: 'var(--status-danger)', 
+                    fontWeight: 900, 
+                    isExpired: false 
+                };
+                if (diffDays <= 2) return { 
+                    text: `Vence em ${diffDays} dia(s)`, 
                     color: 'var(--status-danger)', 
                     fontWeight: 900, 
                     isExpired: false 
                 };
                 if (diffDays <= 7) return { 
                     text: `Vence em ${diffDays} dias`, 
-                    color: 'var(--status-danger)', 
-                    fontWeight: 800, 
-                    isExpired: false 
-                };
-                if (diffDays <= 14) return { 
-                    text: `Vence em ${diffDays} dias`, 
                     color: 'var(--status-warning)', 
                     fontWeight: 700, 
                     isExpired: false 
                 };
-                 if (diffDays <= 30) return { 
+                if (diffDays <= 30) return { 
                     text: `Vence em ${diffDays} dias`, 
                     color: 'var(--status-approaching)', 
                     fontWeight: 600, 
@@ -439,15 +579,15 @@
                 };
             };
 
-            // Renderização (adaptada para async)
+            // Renderização
             const renderListView = () => {
-                productList.innerHTML = '';
-                const sortedProducts = [...products].sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
-
-                if (sortedProducts.length === 0) {
+                if (products.length === 0) {
                     productList.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">Nenhum produto cadastrado.</p>';
                     return;
                 }
+                
+                const sortedProducts = [...products].sort((a, b) => new Date(a.expiry) - new Date(b.expiry));
+                productList.innerHTML = '';
                 
                 sortedProducts.forEach(product => {
                     const status = getStatus(product.expiry);
@@ -458,12 +598,13 @@
                         item.classList.add('is-expired');
                     }
                     
+                    // Aplica a cor na borda para um destaque sutil
                     item.style.borderColor = status.color;
 
                     item.innerHTML = `
                         <div class="info">
                             <h3 class="product-name">${product.name}</h3>
-                            <p>Quantidade: ${product.quantity} | Validade: <a style="color:red;">${new Date(product.expiry + 'T00:00:00').toLocaleDateString('pt-BR')} </a> (${status.text})</p>
+                            <p>Quantidade: ${product.quantity} | Validade: <a style="color:red;">${new Date(product.expiry + 'T00:00:00').toLocaleDateString('pt-BR')}</a> (${status.text})</p>
                         </div>
                         <div class="actions">
                             <button class="btn-edit" title="Editar">✏️</button>
@@ -471,6 +612,7 @@
                         </div>
                     `;
                     
+                    // Aplica o estilo dinâmico ao nome do produto
                     const productNameEl = item.querySelector('.product-name');
                     productNameEl.style.color = status.color;
                     productNameEl.style.fontWeight = status.fontWeight;
@@ -481,8 +623,14 @@
 
             const renderCalendar = () => {
                 calendarGrid.innerHTML = `
-                    <div class="calendar-day-name">D</div><div class="calendar-day-name">S</div><div class="calendar-day-name">T</div>
-                    <div class="calendar-day-name">Q</div><div class="calendar-day-name">Q</div><div class="calendar-day-name">S</div><div class="calendar-day-name">S</div>`;
+                    <div class="calendar-day-name">D</div>
+                    <div class="calendar-day-name">S</div>
+                    <div class="calendar-day-name">T</div>
+                    <div class="calendar-day-name">Q</div>
+                    <div class="calendar-day-name">Q</div>
+                    <div class="calendar-day-name">S</div>
+                    <div class="calendar-day-name">S</div>
+                `;
                 
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
@@ -494,10 +642,12 @@
                 const today = new Date();
                 today.setHours(0,0,0,0);
 
+                // Dias do mês anterior
                 for (let i = 0; i < firstDayOfMonth; i++) {
                     calendarGrid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
                 }
 
+                // Dias do mês atual
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dayEl = document.createElement('div');
                     dayEl.className = 'calendar-day';
@@ -510,7 +660,9 @@
                     
                     const expiringProducts = products.filter(p => {
                         const expiryDate = new Date(p.expiry + 'T00:00:00');
-                        return expiryDate.getFullYear() === year && expiryDate.getMonth() === month && expiryDate.getDate() === day;
+                        return expiryDate.getFullYear() === year && 
+                               expiryDate.getMonth() === month && 
+                               expiryDate.getDate() === day;
                     });
                     
                     if (expiringProducts.length > 0) {
@@ -536,56 +688,110 @@
                 renderCalendar();
             };
 
-            // Lógica de dados atualizada para Supabase
-            const handleFormSubmit = async (e) => {
-                e.preventDefault();
-                const id = productIdInput.value;
-                const productData = {
-                    name: document.getElementById('product-name').value,
-                    quantity: document.getElementById('product-quantity').value,
-                    expiry: document.getElementById('product-expiry').value,
-                };
-
-                if (id) {
-                    productData.id = id;
-                    const updatedProduct = await saveProduct(productData);
-                    if (updatedProduct) {
-                        products = products.map(p => p.id === id ? updatedProduct : p);
-                    }
-                } else {
-                    const newProduct = await saveProduct(productData);
-                    if (newProduct) {
-                        products.push(newProduct);
-                    }
-                }
-
-                render();
-                productDialog.close();
-            };
-
+            // Lógica de formulário - CORRIGIDA
             const openEditDialog = (id) => {
-                const product = products.find(p => p.id === id);
+                console.log('Abrindo edição para ID:', id);
+                const product = products.find(p => p.id == id);
+                
                 if (product) {
+                    console.log('Produto encontrado:', product);
                     formTitle.textContent = 'Editar Produto';
                     productIdInput.value = product.id;
-                    document.getElementById('product-name').value = product.name;
-                    document.getElementById('product-quantity').value = product.quantity;
-                    document.getElementById('product-expiry').value = product.expiry;
+                    productNameInput.value = product.name;
+                    productQuantityInput.value = product.quantity;
+                    productExpiryInput.value = product.expiry;
+                    
+                    // Garantir que o modal esteja visível
                     productDialog.showModal();
+                    console.log('Modal aberto com valores:', {
+                        name: productNameInput.value,
+                        quantity: productQuantityInput.value,
+                        expiry: productExpiryInput.value
+                    });
+                } else {
+                    console.error('Produto não encontrado para ID:', id);
                 }
             };
 
+            const handleFormSubmit = async (e) => {
+                e.preventDefault();
+                
+                const id = productIdInput.value;
+                const productData = {
+                    name: productNameInput.value,
+                    quantity: productQuantityInput.value,
+                    expiry: productExpiryInput.value,
+                };
+
+                try {
+                    const savedProduct = await saveProduct(id ? { ...productData, id } : productData);
+                    
+                    if (id) {
+                        // Atualizar na lista local
+                        products = products.map(p => p.id == id ? savedProduct : p);
+                    } else {
+                        // Adicionar à lista local
+                        products.push(savedProduct);
+                    }
+                    
+                    render();
+                    productDialog.close();
+                } catch (error) {
+                    alert('Erro ao salvar produto. Tente novamente.');
+                }
+            };
+
+            // Função de exclusão corrigida
             const handleDeleteProduct = async (id) => {
                 if (confirm('Tem certeza que deseja excluir este produto?')) {
-                    const success = await deleteProduct(id);
-                    if (success) {
-                        products = products.filter(p => p.id !== id);
-                        render();
+                    try {
+                        // 1. Encontra o elemento HTML
+                        const productElement = document.querySelector(`.product-item[data-id="${id}"]`);
+                        
+                        if (productElement) {
+                            // 2. Adiciona animação de remoção
+                            productElement.classList.add('removing');
+                            
+                            // 3. Espera a animação terminar
+                            setTimeout(async () => {
+                                try {
+                                    // 4. Remove do banco de dados
+                                    await deleteProduct(id);
+                                    
+                                    // 5. Remove da lista local
+                                    products = products.filter(p => p.id != id);
+                                    
+                                    // 6. Remove completamente do DOM
+                                    productElement.remove();
+                                    
+                                    // 7. Se não há mais produtos, mostra mensagem
+                                    if (products.length === 0) {
+                                        productList.innerHTML = '<p style="text-align: center; color: var(--color-text-secondary);">Nenhum produto cadastrado.</p>';
+                                    }
+                                    
+                                    // 8. Atualiza o calendário
+                                    renderCalendar();
+                                    
+                                } catch (error) {
+                                    // Se houver erro, reverte a animação
+                                    productElement.classList.remove('removing');
+                                    alert('Erro ao excluir produto. Tente novamente.');
+                                }
+                            }, 300); // Tempo da animação CSS
+                        } else {
+                            // Fallback se não encontrar o elemento
+                            await deleteProduct(id);
+                            products = products.filter(p => p.id != id);
+                            render();
+                        }
+                        
+                    } catch (error) {
+                        alert('Erro ao excluir produto. Tente novamente.');
                     }
                 }
             };
 
-            // Event listeners (mantidos com pequenas adaptações)
+            // Event listeners
             btnListView.addEventListener('click', () => {
                 productList.classList.add('active');
                 calendarView.classList.remove('active');
@@ -613,14 +819,22 @@
 
             productForm.addEventListener('submit', handleFormSubmit);
 
+            // Event listener corrigido para edição
             productList.addEventListener('click', (e) => {
                 const editBtn = e.target.closest('.btn-edit');
                 const deleteBtn = e.target.closest('.btn-delete');
+                
                 if (editBtn) {
-                    openEditDialog(editBtn.closest('.product-item').dataset.id);
+                    const productItem = editBtn.closest('.product-item');
+                    const productId = productItem.dataset.id;
+                    console.log('Clicou em editar, ID:', productId);
+                    openEditDialog(productId);
                 }
+                
                 if (deleteBtn) {
-                    handleDeleteProduct(deleteBtn.closest('.product-item').dataset.id);
+                    const productItem = deleteBtn.closest('.product-item');
+                    const productId = productItem.dataset.id;
+                    handleDeleteProduct(productId);
                 }
             });
 
@@ -636,8 +850,13 @@
 
             // Inicialização
             const init = async () => {
-                products = await loadProducts();
-                render();
+                try {
+                    products = await loadProducts();
+                    render();
+                } catch (error) {
+                    console.error('Erro ao inicializar:', error);
+                    productList.innerHTML = '<p style="text-align: center; color: var(--status-danger);">Erro ao carregar produtos. Verifique sua conexão.</p>';
+                }
             };
 
             init();
