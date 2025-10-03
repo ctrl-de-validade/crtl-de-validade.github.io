@@ -553,13 +553,13 @@
                     fontWeight: 900, 
                     isExpired: false 
                 };
-                if (diffDays <= 2) return { 
+                if (diffDays <= 7) return { 
                     text: `Vence em ${diffDays} dia(s)`, 
                     color: 'var(--status-danger)', 
                     fontWeight: 900, 
                     isExpired: false 
                 };
-                if (diffDays <= 7) return { 
+                if (diffDays <= 14) return { 
                     text: `Vence em ${diffDays} dias`, 
                     color: 'var(--status-warning)', 
                     fontWeight: 700, 
