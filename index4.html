@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Pedidos de Compras</title>
+    <!-- Adicionando a fonte Inter para um visual de Dashboard moderno -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Script do SDK do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #e0e7ff;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            margin-top: 0;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        /* =========================================
+           ESTILOS BASE (MOBILE-FIRST - Até 767px)
+           ========================================= */
+        .form-grid, .filters-grid, .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px 14px;
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        input:hover, select:hover { background-color: #f1f5f9; }
+        
+        input:focus, select:focus {
+            background-color: var(--surface);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 10px 18px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: var(--shadow-sm);
+        }
+        .btn-primary:hover:not(:disabled) { 
+            background: var(--primary-hover); 
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-cancel { background: #f1f5f9; color: var(--text-muted); display: none; border: 1px solid var(--border);}
+        .btn-cancel:hover { background: #e2e8f0; color: var(--text-main); }
+        
+        .aviso-duplicidade {
+            display: none;
+            color: #92400e;
+            background-color: var(--warning-light);
+            border: 1px solid #fcd34d;
+            padding: 10px 14px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 8px;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .summary-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card:nth-child(1) { border-top: 4px solid var(--primary); }
+        .summary-card:nth-child(2) { border-top: 4px solid var(--warning); }
+        .summary-card:nth-child(3) { border-top: 4px solid var(--success); }
+
+        .summary-card h3 { margin: 0 0 6px 0; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .summary-card span { font-size: 1.8rem; font-weight: 700; color: var(--text-main); line-height: 1; }
+
+        /* =========================================
+           TABELA NO CELULAR (Cards Compactos em Grid)
+           ========================================= */
+        table, thead, tbody, th, td, tr { display: block; width: 100%; }
+        thead { display: none; } 
+        
+        tr { 
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 12px; 
+            border: 1px solid var(--border); 
+            border-radius: var(--radius-md); 
+            padding: 14px;
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        td { 
+            display: flex; 
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0;
+            border: none;
+            font-size: 0.9rem;
+        }
+        
+        td::before { 
+            content: attr(data-label); 
+            font-weight: 600; 
+            color: var(--text-muted); 
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        td:first-child { 
+            grid-column: span 2; 
+            font-size: 1.05rem; 
+            font-weight: 600; 
+            color: var(--text-main); 
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-bottom: 4px;
+        }
+        td:first-child::before { display: none; }
+
+        td:nth-child(6) { grid-column: span 2; }
+        td:nth-child(6) select { width: 100%; padding: 8px; }
+
+        td:last-child { 
+            grid-column: span 2; 
+            flex-direction: row; 
+            gap: 8px; 
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+            margin-top: 4px;
+        }
+        td:last-child::before { display: none; }
+
+        .linha-vazia { display: block; text-align: center; padding: 24px 12px; color: var(--text-muted); border: none; background: transparent; box-shadow: none;}
+        .linha-vazia td { display: block; width: 100%; text-align: center;}
+        .linha-vazia td::before { display: none; }
+
+        .btn-action { width: 100%; padding: 8px; font-size: 0.85rem; color: white; border-radius: 6px; margin: 0; justify-content: center; }
+        .btn-edit { background: var(--warning); }
+        .btn-delete { background: var(--danger); }
+
+        .filters-wrapper {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .filters-wrapper label { margin-bottom: 12px; font-size: 0.9rem; color: var(--text-main); }
+
+        /* =========================================
+           MEDIA QUERY 1: TABLETS/PC (A partir de 768px)
+           ========================================= */
+        @media (min-width: 768px) {
+            body { padding: 32px; }
+            .container { padding: 32px; margin-bottom: 32px; }
+            
+            .form-grid { grid-template-columns: repeat(2, 1fr); gap: 16px;}
+            .form-group-produto { grid-column: span 2; }
+            
+            .summary-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+            .filters-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            
+            button { width: auto; } 
+            .form-group-botoes { grid-column: span 2; display: flex; justify-content: flex-end; gap: 12px; margin-top: 4px;}
+
+            .table-responsive { overflow-x: auto; margin-top: 8px;}
+            
+            table { display: table; width: 100%; border-collapse: separate; border-spacing: 0; }
+            thead { display: table-header-group; }
+            tbody { display: table-row-group; }
+            tr { display: table-row; margin: 0; border: none; transition: background-color 0.15s; }
+            th, td { display: table-cell; width: auto; }
+            
+            .linha-vazia { display: table-row; }
+            .linha-vazia td { display: table-cell; padding: 32px; font-size: 0.95rem; }
+
+            th { 
+                background: #f8fafc; 
+                text-transform: uppercase; 
+                font-size: 0.75rem; 
+                font-weight: 600;
+                color: var(--text-muted); 
+                letter-spacing: 0.05em;
+                padding: 12px 16px; 
+                text-align: left; 
+                border-bottom: 1px solid var(--border);
+                border-top: 1px solid var(--border);
+                white-space: nowrap; 
+            }
+            th:first-child { border-top-left-radius: var(--radius-md); border-left: 1px solid var(--border); }
+            th:last-child { border-top-right-radius: var(--radius-md); border-right: 1px solid var(--border); }
+            
+            tbody tr:hover { background-color: #f1f5f9; }
+            
+            td { 
+                padding: 12px 16px; 
+                text-align: left; 
+                border-bottom: 1px solid var(--border); 
+                border-top: none;
+                font-size: 0.9rem; 
+                vertical-align: middle;
+                white-space: nowrap; 
+            }
+            td::before { display: none; } 
+            
+            td:first-child { 
+                color: var(--text-main); 
+                font-weight: 600; 
+                white-space: normal; 
+                min-width: 180px;
+                width: 30%; 
+            }
+            td:nth-child(4) { 
+                white-space: normal; 
+            }
+            
+            th:nth-child(2), td:nth-child(2) { text-align: center; width: 60px; } 
+            th:nth-child(5), td:nth-child(5) { text-align: center; } 
+            
+            th:last-child, td:last-child { text-align: right; }
+            td:last-child { 
+                padding-top: 12px; 
+                margin-top: 0; 
+                border-top: none; 
+            }
+            
+            .btn-action { 
+                width: auto; 
+                margin: 0 0 0 6px; 
+                padding: 6px 12px; 
+                display: inline-block; 
+                box-shadow: var(--shadow-sm); 
+            }
+            
+            td select {
+                padding: 4px 28px 4px 10px;
+                border-radius: 20px;
+                background-color: var(--surface);
+                font-size: 0.85rem;
+                font-weight: 500;
+                border: 1px solid var(--border);
+                cursor: pointer;
+                width: auto;
+            }
+        }
+
+        /* =========================================
+           MEDIA QUERY 2: COMPUTADORES (A partir de 1024px)
+           ========================================= */
+        @media (min-width: 1024px) {
+            .form-grid { grid-template-columns: repeat(3, 1fr); }
+            .form-group-produto { grid-column: span 1; } 
+            .form-group-botoes { grid-column: span 3; }
+            
+            .filters-grid { 
+                grid-template-columns: 2fr 2fr 1.5fr 1.5fr 1.5fr auto; 
+                align-items: center; 
+            }
+        }
+        
+        .linha-chegar td, .linha-chegar { background-color: var(--success-light) !important; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: white; display: inline-block;}
+        .urg-Alta { background: var(--danger); }
+        .urg-Média { background: var(--warning); color: #fff; }
+        .urg-Baixa { background: var(--success); }
+        
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+        .btn-outline:hover { background: #e2e8f0; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2 id="form-titulo">
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+            Adicionar Novo Pedido
+        </h2>
+        <form id="form-produto">
+            <div class="form-grid">
+                <div class="form-group form-group-produto">
+                    <label for="produto">Nome do Produto *</label>
+                    <input type="text" id="produto" required autocomplete="off" placeholder="Ex: Queijo Mussarela 1kg">
+                    <div id="aviso-duplicidade" class="aviso-duplicidade"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="quantidade">Qtd Atual *</label>
+                    <input type="number" id="quantidade" required min="0" placeholder="Ex: 5">
+                </div>
+
+                <div class="form-group">
+                    <label for="urgencia">Nível de Urgência</label>
+                    <select id="urgencia">
+                        <option value="Alta">Alta</option>
+                        <option value="Média">Média</option>
+                        <option value="Baixa" selected>Baixa</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoria">Categoria</label>
+                    <select id="categoria">
+                        <option value="Higiene">Higiene</option>
+                        <option value="Mercearia">Mercearia</option>
+                        <option value="Frios">Frios</option>
+                        <option value="Laticínios">Laticínios</option>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="fornecedor">Fornecedor / Local</label>
+                    <input type="text" id="fornecedor" list="fornecedores-lista" placeholder="Ex: BRF, Mercado...">
+                    <datalist id="fornecedores-lista">
+                        <option value="BRF"></option>
+                        <option value="AmBev"></option>
+                        <option value="Coca-Cola"></option>
+                        <option value="Destro"></option>
+                    </datalist>
+                </div>
+
+                <div class="form-group form-group-botoes">
+                    <button type="button" id="btn-cancel" class="btn-cancel" onclick="cancelarEdicao()">Cancelar</button>
+                    <button type="submit" id="btn-submit" class="btn-primary">Adicionar Item</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>
+            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            Painel de Pedidos
+        </h2>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>Total de Itens</h3>
+                <span id="resumo-total" style="color: var(--primary);">0</span>
+            </div>
+            <div class="summary-card">
+                <h3>No Carrinho</h3>
+                <span id="resumo-carrinho" style="color: var(--warning);">0</span>
+            </div>
+            <div class="summary-card">
+                <h3>Pra Chegar</h3>
+                <span id="resumo-chegar" style="color: var(--success);">0</span>
+            </div>
+        </div>
+        
+        <div class="filters-wrapper">
+            <label><strong>Filtros Avançados</strong></label>
+            <div class="filters-grid">
+                <input type="text" id="filtro-nome" placeholder="Buscar produto...">
+                <input type="text" id="filtro-fornecedor-busca" placeholder="Buscar fornecedor...">
+                
+                <select id="filtro-categoria">
+                    <option value="">Todas Categorias</option>
+                    <option value="Higiene">Higiene</option>
+                    <option value="Mercearia">Mercearia</option>
+                    <option value="Frios">Frios</option>
+                    <option value="Laticínios">Laticínios</option>
+                    <option value="Bebidas">Bebidas</option>
+                    <option value="Outros">Outros</option>
+                </select>
+
+                <select id="filtro-status">
+                    <option value="">Todos os Status</option>
+                    <option value="Nenhum">Nenhum</option>
+                    <option value="No Carrinho">No Carrinho</option>
+                    <option value="Pra Chegar">Pra Chegar</option>
+                </select>
+
+                <select id="filtro-urgencia">
+                    <option value="">Qualquer Urgência</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Média">Média</option>
+                    <option value="Baixa">Baixa</option>
+                </select>
+
+                <button type="button" class="btn-outline" onclick="limparFiltros()">Limpar</button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Qtd</th>
+                        <th>Categoria</th>
+                        <th>Fornecedor</th>
+                        <th>Urgência</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // CONFIGURAÇÃO DO SUPABASE (Atualizado com os seus dados públicos)
+        // =================================================================
+        const SUPABASE_URL = 'https://esfhlnildeyfaejzbpyp.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVzZmhsbmlsZGV5ZmFlanpicHlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTQwNTcsImV4cCI6MjA5NTAzMDA1N30.TcVO3qOi3pcsHCtUnFABwmzQvvbBadjQQgKwBiurAtg';
+        
+        const { createClient } = window.supabase;
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // =================================================================
+
+        let itensCompra = [];
+        let idEmEdicao = null;
+
+        const form = document.getElementById('form-produto');
+        const tabelaCorpo = document.getElementById('tabela-corpo');
+        const btnSubmit = document.getElementById('btn-submit');
+        const btnCancel = document.getElementById('btn-cancel');
+        const tituloForm = document.getElementById('form-titulo');
+        const inputProduto = document.getElementById('produto');
+        const avisoDuplicidade = document.getElementById('aviso-duplicidade');
+
+        function removerAcentos(texto) {
+            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        function normalizarParaComparacao(texto) {
+            let limpo = texto.toLowerCase().trim();
+            limpo = limpo.replace(/\b\d+[,.]?\d*\s*(kg|g|mg|l|ml|lt|cm|m|un|cx|pc)\b/gi, '');
+            limpo = limpo.replace(/\d+/g, '');
+            limpo = limpo.replace(/\s+/g, ' ').trim();
+            return limpo;
+        }
+
+        function levenshtein(a, b) {
+            const matrix = [];
+            for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+            for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        function isSimilar(str1, str2) {
+            const norm1 = normalizarParaComparacao(str1);
+            const norm2 = normalizarParaComparacao(str2);
+            
+            if (norm1 === norm2 && norm1 !== '') return true;
+            if (norm1.length < 3 || norm2.length < 3) return false;
+
+            const dist = levenshtein(norm1, norm2);
+            const maxLen = Math.max(norm1.length, norm2.length);
+            const similarity = (maxLen - dist) / maxLen;
+            
+            return similarity >= 0.75;
+        }
+
+        inputProduto.addEventListener('input', function(e) {
+            const valor = e.target.value;
+            
+            if (valor.trim().length < 3) {
+                avisoDuplicidade.style.display = 'none';
+                return;
+            }
+
+            const similares = itensCompra.filter(item => {
+                if (idEmEdicao === item.id) return false;
+                return isSimilar(valor, item.nome);
+            });
+
+            if (similares.length > 0) {
+                const nomes = similares.map(s => `<strong>${s.nome}</strong>`).join(', ');
+                avisoDuplicidade.innerHTML = `⚠️ Já existe na lista: ${nomes}.`;
+                avisoDuplicidade.style.display = 'block';
+            } else {
+                avisoDuplicidade.style.display = 'none';
+            }
+        });
+
+        // Carrega as informações direto do Banco de Dados do Supabase
+        async function carregarDados() {
+            try {
+                const { data, error } = await _supabase
+                    .from('pedidos')
+                    .select('*')
+                    .order('id', { ascending: true });
+
+                if (error) throw error;
+
+                itensCompra = data || [];
+                renderizarTabela();
+            } catch (err) {
+                console.error("Erro ao carregar dados do Supabase:", err.message);
+                alert("Não foi possível se conectar ao banco de dados do Supabase. Verifique suas chaves e o RLS.");
+            }
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            btnSubmit.disabled = true;
+            
+            const produtoVal = inputProduto.value;
+            const quantidadeVal = parseInt(document.getElementById('quantidade').value);
+            const urgenciaVal = document.getElementById('urgencia').value;
+            const categoriaVal = document.getElementById('categoria').value;
+            const fornecedorVal = document.getElementById('fornecedor').value || 'Não especificado';
+
+            try {
+                if (idEmEdicao !== null) {
+                    // Update no Supabase
+                    const { error } = await _supabase
+                        .from('pedidos')
+                        .update({
+                            nome: produtoVal,
+                            quantidade: quantidadeVal,
+                            urgencia: urgenciaVal,
+                            categoria: categoriaVal,
+                            fornecedor: fornecedorVal
+                        })
+                        .eq('id', idEmEdicao);
+
+                    if (error) throw error;
+
+                    const index = itensCompra.findIndex(i => i.id === idEmEdicao);
+                    if(index !== -1) {
+                        itensCompra[index].nome = produtoVal;
+                        itensCompra[index].quantidade = quantidadeVal;
+                        itensCompra[index].urgencia = urgenciaVal;
+                        itensCompra[index].categoria = categoriaVal;
+                        itensCompra[index].fornecedor = fornecedorVal;
+                    }
+                    cancelarEdicao();
+                } else {
+                    // Insert no Supabase
+                    const { data, error } = await _supabase
+                        .from('pedidos')
+                        .insert([{
+                            nome: produtoVal,
+                            quantidade: quantidadeVal,
+                            urgencia: urgenciaVal,
+                            categoria: categoriaVal,
+                            fornecedor: fornecedorVal,
+                            status: 'Nenhum'
+                        }])
+                        .select();
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        itensCompra.push(data[0]);
+                    }
+                    form.reset();
+                }
+
+                avisoDuplicidade.style.display = 'none';
+                renderizarTabela();
+            } catch (err) {
+                console.error("Erro ao salvar operação no Supabase:", err.message);
+                alert("Erro ao salvar no Supabase: " + err.message);
+            } finally {
+                btnSubmit.disabled = false;
+            }
+        });
+
+        function editarItem(id) {
+            const item = itensCompra.find(i => i.id === id);
+            if (!item) return;
+            
+            inputProduto.value = item.nome;
+            document.getElementById('quantidade').value = item.quantidade;
+            document.getElementById('urgencia').value = item.urgencia;
+            document.getElementById('categoria').value = item.categoria;
+            document.getElementById('fornecedor').value = item.fornecedor !== 'Não especificado' ? item.fornecedor : '';
+
+            idEmEdicao = id;
+            tituloForm.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Editar Pedido`;
+            btnSubmit.innerHTML = "Salvar Alterações";
+            btnSubmit.style.background = "var(--warning)";
+            btnCancel.style.display = "inline-flex";
+            avisoDuplicidade.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelarEdicao() {
+            idEmEdicao = null;
+            form.reset();
+            tituloForm.innerHTML = `<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg> Adicionar Novo Pedido`;
+            btnSubmit.innerHTML = "Adicionar Item";
+            btnSubmit.style.background = "var(--primary)";
+            btnCancel.style.display = "none";
+            avisoDuplicidade.style.display = 'none';
+        }
+
+        async function mudarStatus(id, novoStatus) {
+            try {
+                const { error } = await _supabase
+                    .from('pedidos')
+                    .update({ status: novoStatus })
+                    .eq('id', id);
+
+                if (error) throw error;
+
+                const item = itensCompra.find(i => i.id === id);
+                if(item) { 
+                    item.status = novoStatus; 
+                    renderizarTabela(); 
+                }
+            } catch (err) {
+                console.error("Erro ao alterar status no Supabase:", err.message);
+                alert("Não foi possível atualizar o status: " + err.message);
+            }
+        }
+
+        async function deletarItem(id) {
+            if(confirm("Excluir este item permanentemente?")) {
+                try {
+                    const { error } = await _supabase
+                        .from('pedidos')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    itensCompra = itensCompra.filter(i => i.id !== id);
+                    if(idEmEdicao === id) cancelarEdicao(); 
+                    renderizarTabela();
+                } catch (err) {
+                    console.error("Erro ao deletar item do Supabase:", err.message);
+                    alert("Não foi possível deletar o item: " + err.message);
+                }
+            }
+        }
+
+        function limparFiltros() {
+            ['filtro-nome', 'filtro-fornecedor-busca', 'filtro-categoria', 'filtro-status', 'filtro-urgencia']
+                .forEach(id => document.getElementById(id).value = '');
+            renderizarTabela();
+        }
+
+        function renderizarTabela() {
+            tabelaCorpo.innerHTML = '';
+            const val = id => document.getElementById(id).value;
+            
+            document.getElementById('resumo-total').textContent = itensCompra.length;
+            document.getElementById('resumo-carrinho').textContent = itensCompra.filter(i => i.status === 'No Carrinho').length;
+            document.getElementById('resumo-chegar').textContent = itensCompra.filter(i => i.status === 'Pra Chegar').length;
+
+            const termoNome = removerAcentos(val('filtro-nome'));
+            const termoFornecedor = removerAcentos(val('filtro-fornecedor-busca'));
+
+            const itensFiltrados = itensCompra.filter(item => 
+                removerAcentos(item.nome).includes(termoNome) &&
+                removerAcentos(item.fornecedor).includes(termoFornecedor) &&
+                (val('filtro-categoria') === '' || item.categoria === val('filtro-categoria')) &&
+                (val('filtro-status') === '' || item.status === val('filtro-status')) &&
+                (val('filtro-urgencia') === '' || item.urgencia === val('filtro-urgencia'))
+            );
+
+            if (itensFiltrados.length === 0) {
+                tabelaCorpo.innerHTML = '<tr class="linha-vazia"><td colspan="7">Nenhum item encontrado.</td></tr>'; 
+                return;
+            }
+
+            itensFiltrados.forEach(item => {
+                const tr = document.createElement('tr');
+                if(item.status === 'Pra Chegar') tr.classList.add('linha-chegar');
+
+                tr.innerHTML = `
+                    <td data-label="Produto">${item.nome}</td>
+                    <td data-label="Qtd">${item.quantidade}</td>
+                    <td data-label="Categoria">${item.categoria}</td>
+                    <td data-label="Fornecedor">${item.fornecedor}</td>
+                    <td data-label="Urgência"><span class="badge urg-${item.urgencia}">${item.urgencia}</span></td>
+                    <td data-label="Status">
+                        <select onchange="mudarStatus(${item.id}, this.value)">
+                            <option value="Nenhum" ${item.status === 'Nenhum' ? 'selected' : ''}>Nenhum</option>
+                            <option value="No Carrinho" ${item.status === 'No Carrinho' ? 'selected' : ''}>No Carrinho</option>
+                            <option value="Pra Chegar" ${item.status === 'Pra Chegar' ? 'selected' : ''}>Pra Chegar</option>
+                        </select>
+                    </td>
+                    <td data-label="Ações">
+                        <button class="btn-action btn-edit" onclick="editarItem(${item.id})">Editar</button>
+                        <button class="btn-action btn-delete" onclick="deletarItem(${item.id})">Apagar</button>
+                    </td>
+                `;
+                tabelaCorpo.appendChild(tr);
+            });
+        }
+
+        ['filtro-nome', 'filtro-fornecedor-busca'].forEach(id => document.getElementById(id).addEventListener('input', renderizarTabela));
+        ['filtro-categoria', 'filtro-status', 'filtro-urgencia'].forEach(id => document.getElementById(id).addEventListener('change', renderizarTabela));
+
+        // Inicializa buscando dados direto da nuvem
+        carregarDados();
+    </script>
+</body>
+</html>
