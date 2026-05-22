@@ -48,6 +48,7 @@
     .btn:hover{transform:scale(1.05);box-shadow:0 0 15px rgba(255,255,255,0.2)}
     .btn-public{background:linear-gradient(90deg,var(--accent-b),var(--accent-a))}
     .btn-private{background:linear-gradient(90deg,#ffd580,#ff7ab6);color:#2b0b1a}
+    .btn-comprar{background:linear-gradient(120deg, #06b6d4, #000539);color:white}
   </style>
 </head>
 <body>
@@ -55,13 +56,21 @@
     <h1>Controle de Validade</h1>
     <button class="btn btn-public" id="btn-public">Público</button>
     <button class="btn btn-private" id="btn-private">Privado</button>
-  </div>  <script>
+    
+    <button class="btn btn-comprar" id="btn-comprar">produtos em falta</button>
+  </div> 
+  
+  <script>
     document.getElementById('btn-public').addEventListener('click', ()=>{
       window.location.href = 'index2.html';
     });
 
     document.getElementById('btn-private').addEventListener('click', ()=>{
       window.location.href = 'index3.html';
+    });
+      
+    document.getElementById('btn-comprar').addEventListener('click', () => {
+            window.location.href = 'index4.html';
     });
   </script></body>
 </html>
