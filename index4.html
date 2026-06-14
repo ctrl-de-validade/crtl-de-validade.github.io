@@ -807,6 +807,90 @@ input[type="checkbox"] {
   min-width: 130px;
 }
 
+/* ── Botão de accordion discreto (substitui o "+" grande) ── */
+.acc-toggle {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted-light);
+  cursor: pointer;
+  transition: all .15s;
+  vertical-align: middle;
+  margin-right: 7px;
+  padding: 0;
+}
+.acc-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-glow);
+}
+.acc-toggle svg { display: block; }
+
+/* ── Campo de filtro de fornecedor ── */
+.filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  min-width: 180px;
+  max-width: 300px;
+  position: relative;
+}
+.filter-wrap svg {
+  position: absolute;
+  left: 10px;
+  color: var(--muted-light);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+.filter-input {
+  padding: 7px 30px 7px 32px;
+  border-radius: var(--r-md);
+  font-size: .82rem;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+}
+.filter-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+  background: var(--surface);
+  outline: none;
+}
+.filter-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: .75rem;
+  color: var(--muted-light);
+  cursor: pointer;
+  padding: 2px;
+  display: none;
+  line-height: 1;
+}
+.filter-clear:hover { color: var(--danger); }
+.filter-active-badge {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: var(--primary-glow);
+  border: 1px solid rgba(99,102,241,.25);
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--primary);
+  white-space: nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    BARRA DE AÇÕES EM MASSA (flutuante)
 ═══════════════════════════════════════════════════════════════ */
@@ -1004,11 +1088,11 @@ input[type="checkbox"] {
   color: var(--primary);
 }
 
-/* FAB no meio do bottom nav */
+/* FAB no meio do bottom nav — DISCRETO (menor e mais simples) */
 .bottom-tab-fab {
-  width: 48px; height: 48px;
-  background: linear-gradient(135deg, var(--primary), #818CF8);
-  border-radius: 14px;
+  width: 36px; height: 36px;
+  background: var(--primary);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1016,15 +1100,15 @@ input[type="checkbox"] {
   gap: 0;
   color: white;
   font-size: 0;
-  box-shadow: 0 4px 14px rgba(99,102,241,.45);
+  box-shadow: 0 2px 8px rgba(99,102,241,.3);
   border: none;
   cursor: pointer;
   flex-shrink: 0;
   transition: transform .15s, box-shadow .15s;
 }
 
-.bottom-tab-fab:active { transform: scale(.94); box-shadow: 0 2px 8px rgba(99,102,241,.3); }
-.bottom-tab-fab svg { width: 22px; height: 22px; }
+.bottom-tab-fab:active { transform: scale(.94); box-shadow: 0 1px 4px rgba(99,102,241,.2); }
+.bottom-tab-fab svg { width: 17px; height: 17px; }
 
 /* ═══════════════════════════════════════════════════════════════
    EMPTY STATE
@@ -1296,16 +1380,42 @@ input[type="checkbox"] {
 
       <div class="panel-content" style="padding-top:0;">
         <div class="card" style="margin-top:0; border-radius: 0 0 var(--r-xl) var(--r-xl);">
-          <div class="table-toolbar" style="padding-top:16px;">
-            <span class="toolbar-label">Agrupar por:</span>
+          <div class="table-toolbar" style="padding-top:16px; flex-wrap:wrap; gap:10px;">
+
+            <!-- Agrupamento (mobile) -->
+            <span class="toolbar-label" style="white-space:nowrap;">Agrupar por:</span>
             <select id="seletor-agrupamento-mobile" class="toolbar-select"
                     onchange="document.getElementById('seletor-agrupamento').value=this.value; renderizarTabela();"
-                    style="display:none;">
+                    style="display:none; width:auto;">
               <option value="none">Lista linear</option>
               <option value="fornecedor">Por Fornecedor</option>
               <option value="categoria">Por Categoria</option>
               <option value="urgencia">Por Prioridade</option>
             </select>
+
+            <!-- Filtro por fornecedor (fuzzy search) -->
+            <div class="filter-wrap" style="margin-left:auto;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input type="text" class="filter-input" id="filtro-fornecedor"
+                     placeholder="Filtrar fornecedor…"
+                     oninput="setFiltroFornecedor(this.value)"
+                     autocomplete="off">
+              <button class="filter-clear" id="filtro-clear" title="Limpar filtro"
+                      onclick="limparFiltroFornecedor()">✕</button>
+            </div>
+
+            <!-- Badge que indica filtro ativo -->
+            <div class="filter-active-badge" id="filtro-badge">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.5">
+                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+              </svg>
+              <span id="filtro-badge-text">0 encontrados</span>
+            </div>
+
           </div>
           <div class="table-wrap">
             <table>
@@ -1462,6 +1572,7 @@ let idEmEdicao             = null; // null = modo criação
 let itensSimilaresDetect   = [];   // ARRAY de todos os similares detectados
 let selecionados           = new Set();
 let painelAtivo            = 'cadastro';
+let filtroFornecedor       = '';   // texto do filtro de fornecedor (fuzzy)
 
 /* ════════════════════════════════════════════════════════════
    REFS DOM
@@ -1512,13 +1623,33 @@ function toggleOpcional() {
 }
 
 /* ════════════════════════════════════════════════════════════
-   SIMILARIDADE (Levenshtein)
-   Retorna score 0.0–1.0.
+   SIMILARIDADE (Levenshtein + normalização inteligente)
 ════════════════════════════════════════════════════════════ */
+
+/** Remove acentos e converte para minúsculas */
 function removerAcentos(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+/**
+ * Normaliza um nome de produto removendo:
+ *  - Números com unidades de medida (2L, 600ml, 1kg, 500g, …)
+ *  - Números avulsos (quantidades sem unidade)
+ * Isso garante que "Coca Cola 2L" e "Coca Cola 600ml" sejam
+ * tratados como o mesmo produto-base "Coca Cola".
+ */
+function normalizarNome(nome) {
+  return removerAcentos(nome)
+    // Remove número + unidade (ex: 2l, 600ml, 1kg, 500g, 12un, 6x350ml)
+    .replace(/\b\d+(?:[.,x]\d+)?\s*(?:ml|cl|dl|l(?:itros?)?|kg|g(?:r(?:amas?)?)?|mg|ton|un(?:id(?:ades?)?)?|pct|pcte|pacotes?|cx(?:s)?|caixas?|lt(?:s)?|latas?|garrafas?|fardos?|baldes?|sacos?|sachs?|sachets?|tabletes?|tb|comps?|comprimidos?|caps?|c[aá]psulas?|lb(?:s)?)\b/gi, ' ')
+    // Remove números avulsos restantes (ex: "6 unidades" → já tratado acima, mas "Pack 6" → "Pack")
+    .replace(/\b\d+(?:[.,]\d+)?\b/g, ' ')
+    // Colapsa múltiplos espaços
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Distância de Levenshtein entre duas strings pré-processadas */
 function calcularSimilaridade(s1, s2) {
   s1 = removerAcentos(s1.trim());
   s2 = removerAcentos(s2.trim());
@@ -1546,6 +1677,29 @@ function calcularSimilaridade(s1, s2) {
   return (longer.length - costs[shorter.length]) / longer.length;
 }
 
+/**
+ * Similaridade inteligente entre dois nomes de produto.
+ * Compara tanto os nomes originais quanto os normalizados
+ * (sem gramatura/ml/kg) e retorna o maior score.
+ * Também detecta quando um nome é subconjunto do outro
+ * (ex: "Coca Cola" ⊂ "Coca Cola Zero" → 0.92).
+ */
+function similaridadeProduto(nome1, nome2) {
+  const n1 = normalizarNome(nome1);
+  const n2 = normalizarNome(nome2);
+
+  // Subconjunto direto após normalização (mínimo 3 chars para evitar falsos)
+  if (n1.length >= 3 && n2.includes(n1)) return 0.92;
+  if (n2.length >= 3 && n1.includes(n2)) return 0.92;
+
+  // Levenshtein sobre nomes normalizados (ignora gramatura)
+  const scoreNorm = calcularSimilaridade(n1, n2);
+  // Levenshtein sobre nomes originais (fallback)
+  const scoreRaw  = calcularSimilaridade(nome1, nome2);
+
+  return Math.max(scoreNorm, scoreRaw);
+}
+
 /* ════════════════════════════════════════════════════════════
    DETECTOR DE SIMILARIDADE — escuta o campo "produto"
    Mostra TODOS os itens com score ≥ 65%, ordenados por match.
@@ -1557,11 +1711,12 @@ inputProduto.addEventListener('input', function () {
   const similares = itensCompra
     .filter(item => {
       if (idEmEdicao === item.id) return false;
-      return calcularSimilaridade(valor, item.nome) >= 0.40;
+      // Usa similaridadeProduto que ignora gramatura/ml/kg
+      return similaridadeProduto(valor, item.nome) >= 0.62;
     })
     .map(item => ({
       ...item,
-      score: calcularSimilaridade(valor, item.nome)
+      score: similaridadeProduto(valor, item.nome)
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -1747,11 +1902,61 @@ async function mudarStatus(id, status) {
 }
 
 /* ════════════════════════════════════════════════════════════
+   FILTRO DE FORNECEDOR (fuzzy search)
+   Combina substring (rápido e intuitivo) com Levenshtein
+   (tolerante a typos). Ex: "koka kola" encontra "Coca-Cola".
+════════════════════════════════════════════════════════════ */
+function setFiltroFornecedor(valor) {
+  filtroFornecedor = valor.trim();
+  // Mostra/esconde botão de limpar
+  const btn = document.getElementById('filtro-clear');
+  if (btn) btn.style.display = filtroFornecedor ? 'block' : 'none';
+  renderizarTabela();
+}
+
+function limparFiltroFornecedor() {
+  filtroFornecedor = '';
+  const inp = document.getElementById('filtro-fornecedor');
+  if (inp) inp.value = '';
+  const btn = document.getElementById('filtro-clear');
+  if (btn) btn.style.display = 'none';
+  renderizarTabela();
+}
+
+/** Retorna true se o fornecedor do item bate com o filtro digitado */
+function fornecedorBateComFiltro(fornecedor) {
+  if (!filtroFornecedor) return true;
+  const forn  = removerAcentos(fornecedor || '');
+  const query = removerAcentos(filtroFornecedor);
+  // Substring direto (ex: "coca" → "Coca-Cola")
+  if (forn.includes(query)) return true;
+  // Fuzzy com Levenshtein para typos (ex: "koka" → "coca-cola")
+  return calcularSimilaridade(query, forn) >= 0.45;
+}
+
+/** Atualiza o badge de resultado do filtro ativo */
+function atualizarBadgeFiltro(total) {
+  const badge = document.getElementById('filtro-badge');
+  const txt   = document.getElementById('filtro-badge-text');
+  if (!badge || !txt) return;
+  if (filtroFornecedor) {
+    badge.style.display = 'flex';
+    txt.textContent = `${total} resultado${total !== 1 ? 's' : ''}`;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
    RENDERIZAÇÃO DA TABELA
 ════════════════════════════════════════════════════════════ */
 function renderizarTabela() {
   tabelaCorpo.innerHTML = '';
   const criterio = document.getElementById('seletor-agrupamento').value;
+
+  // Aplica filtro de fornecedor antes de tudo
+  const itensFiltrados = itensCompra.filter(i => fornecedorBateComFiltro(i.fornecedor));
+  atualizarBadgeFiltro(itensFiltrados.length);
 
   if (!itensCompra.length) {
     tabelaCorpo.innerHTML = `
@@ -1762,17 +1967,36 @@ function renderizarTabela() {
           <div class="empty-state-text">Adicione o primeiro item na aba "Adicionar Item"</div>
         </div>
       </td></tr>`;
+    atualizarBadgeFiltro(0);
+    return;
+  }
+
+  if (!itensFiltrados.length) {
+    tabelaCorpo.innerHTML = `
+      <tr><td colspan="7">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <div class="empty-state-title">Nenhum fornecedor encontrado</div>
+          <div class="empty-state-text">Tente outro nome ou
+            <button onclick="limparFiltroFornecedor()"
+                    style="background:none;border:none;color:var(--primary);
+                           font-weight:600;cursor:pointer;font-size:inherit;">
+              limpar o filtro
+            </button>
+          </div>
+        </div>
+      </td></tr>`;
     return;
   }
 
   if (criterio === 'none') {
-    itensCompra.forEach(item => {
+    itensFiltrados.forEach(item => {
       tabelaCorpo.appendChild(criarLinha(item));
       tabelaCorpo.appendChild(criarDetalhes(item));
     });
   } else {
     const grupos = {};
-    itensCompra.forEach(item => {
+    itensFiltrados.forEach(item => {
       const k = item[criterio] || 'Sem especificação';
       if (!grupos[k]) grupos[k] = [];
       grupos[k].push(item);
@@ -1800,13 +2024,13 @@ function criarLinha(item, grupo = null) {
 
   tr.innerHTML = `
     <td class="chk-cell"><input type="checkbox" ${chk} onchange="toggleSel(${item.id}, this)"></td>
-    <td>
-      <button class="btn-icon btn-sm" onclick="toggleAcc(${item.id})" title="Detalhes">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M12 5v14M5 12h14"/>
+    <td style="white-space:nowrap;">
+      <button class="acc-toggle" onclick="toggleAcc(${item.id})" title="Ver detalhes">
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="3">
+          <path d="M6 9l6 6 6-6"/>
         </svg>
-      </button>
-      <strong style="margin-left:8px;">${item.nome}</strong>
+      </button><strong>${item.nome}</strong>
     </td>
     <td><span class="chip">${item.categoria}</span></td>
     <td style="color:var(--muted);font-size:.82rem;">${item.fornecedor}</td>
