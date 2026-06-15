@@ -1421,7 +1421,7 @@ input[type="checkbox"] {
             <table>
               <thead>
                 <tr>
-                  <th class="chk-cell">
+                  <th class="chk-cell" >
                     <input type="checkbox" id="chk-all" onchange="selecionarTodos(this)">
                   </th>
                   <th>Produto</th>
@@ -2009,7 +2009,10 @@ function renderizarTabela() {
       });
     });
   }
+
+  // Atualiza a barra flutuante e os estados de checkbox (incluindo indeterminate)
   atualizarBulkBar();
+  atualizarEstadosCheckbox();
 }
 
 function criarLinha(item, grupo = null) {
@@ -2091,11 +2094,20 @@ function criarDetalhes(item, grupo = null) {
 
 function criarGrupoHeader(nome, itens, criterio) {
   const tr = document.createElement('tr');
-  tr.className = 'group-header-row';
-  const todosChk = itens.every(i => selecionados.has(i.id));
+  tr.className     = 'group-header-row';
+  // data-group-nome permite que atualizarEstadosCheckbox() localize este header
+  tr.dataset.groupNome = nome;
+
+  const selCount = itens.filter(i => selecionados.has(i.id)).length;
+  const allSel   = selCount === itens.length;
+  const someSel  = selCount > 0 && !allSel;
+  // Escapa aspas simples no nome para não quebrar o onchange inline
+  const nomeEsc  = nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
   tr.innerHTML = `
     <td class="chk-cell">
-      <input type="checkbox" ${todosChk?'checked':''} onchange="selecionarGrupo('${nome}',this)">
+      <input type="checkbox" ${allSel ? 'checked' : ''}
+             onchange="selecionarGrupo('${nomeEsc}', this)">
     </td>
     <td colspan="6">
       ${criterio.toUpperCase()} — ${nome}
@@ -2104,6 +2116,12 @@ function criarGrupoHeader(nome, itens, criterio) {
         ${itens.length} item${itens.length!==1?'s':''}
       </span>
     </td>`;
+
+  // indeterminate não existe como atributo HTML — precisa ser setado via JS
+  if (someSel) {
+    const chk = tr.querySelector('input[type="checkbox"]');
+    if (chk) { chk.checked = false; chk.indeterminate = true; }
+  }
   return tr;
 }
 
@@ -2112,34 +2130,61 @@ function toggleAcc(id) {
 }
 
 /* ════════════════════════════════════════════════════════════
-   CHECKBOXES & BULK
+   CHECKBOXES & BULK — seleção em massa corrigida
 ════════════════════════════════════════════════════════════ */
-function toggleSel(id, el) {
-  el.checked ? selecionados.add(id) : selecionados.delete(id);
-  atualizarBulkBar();
+
+/**
+ * Retorna os itens atualmente visíveis na tabela
+ * (respeitando o filtro de fornecedor ativo).
+ */
+function getItensFiltrados() {
+  return itensCompra.filter(i => fornecedorBateComFiltro(i.fornecedor));
 }
 
+/**
+ * Marca/desmarca um item individual.
+ * NÃO re-renderiza a tabela para não perder o estado dos accordions —
+ * apenas atualiza a barra flutuante e os estados dos checkboxes de cabeçalho.
+ */
+function toggleSel(id, el) {
+  el.checked ? selecionados.add(id) : selecionados.delete(id);
+  atualizarBulkBar();          // contador + visibilidade da barra
+  atualizarEstadosCheckbox();  // global + grupos ficam sincronizados
+}
+
+/**
+ * Seleciona/desseleciona TODOS os itens visíveis (respeitando filtro).
+ * Re-renderiza para refletir os checkboxes nas linhas.
+ */
 function selecionarTodos(el) {
-  itensCompra.forEach(i => el.checked ? selecionados.add(i.id) : selecionados.delete(i.id));
+  const visiveis = getItensFiltrados();
+  visiveis.forEach(i => el.checked ? selecionados.add(i.id) : selecionados.delete(i.id));
   renderizarTabela();
 }
 
+/**
+ * Seleciona/desseleciona todos os itens de um grupo específico
+ * (apenas os visíveis com o filtro atual).
+ */
 function selecionarGrupo(nome, el) {
-  const crit = document.getElementById('seletor-agrupamento').value;
-  itensCompra.forEach(i => {
+  const crit     = document.getElementById('seletor-agrupamento').value;
+  const visiveis = getItensFiltrados();
+  visiveis.forEach(i => {
     if ((i[crit] || 'Sem especificação') === nome)
       el.checked ? selecionados.add(i.id) : selecionados.delete(i.id);
   });
   renderizarTabela();
 }
 
+/** Limpa toda a seleção e reseta o select de ação */
 function desmarcarTodos() {
   selecionados.clear();
-  const g = document.getElementById('chk-all');
-  if (g) g.checked = false;
+  const sel = document.getElementById('bulk-action-select');
+  if (sel) sel.value = '';
   renderizarTabela();
 }
 
+/** Atualiza a barra flutuante com contagem atual */
 function atualizarBulkBar() {
   const bar = document.getElementById('bulk-bar');
   const cnt = document.getElementById('bulk-count');
@@ -2150,6 +2195,59 @@ function atualizarBulkBar() {
   } else {
     bar.classList.remove('visible');
   }
+}
+
+/**
+ * Sincroniza o estado visual (checked / indeterminate) do checkbox global
+ * e dos checkboxes de cabeçalho de grupo — sem re-renderizar a tabela.
+ *
+ * indeterminate = alguns itens do grupo/total estão marcados, mas não todos.
+ */
+function atualizarEstadosCheckbox() {
+  const visiveis  = getItensFiltrados();
+  const totalVis  = visiveis.length;
+  const selVis    = visiveis.filter(i => selecionados.has(i.id)).length;
+
+  // ── Checkbox global ──────────────────────────────────────
+  const chkAll = document.getElementById('chk-all');
+  if (chkAll) {
+    if (selVis === 0) {
+      chkAll.checked       = false;
+      chkAll.indeterminate = false;
+    } else if (selVis === totalVis) {
+      chkAll.checked       = true;
+      chkAll.indeterminate = false;
+    } else {
+      chkAll.checked       = false;
+      chkAll.indeterminate = true;  // ← estado "parcial"
+    }
+  }
+
+  // ── Checkboxes de cabeçalhos de grupo ────────────────────
+  const crit = document.getElementById('seletor-agrupamento').value;
+  if (crit === 'none') return;
+
+  document.querySelectorAll('.group-header-row').forEach(tr => {
+    const chk       = tr.querySelector('input[type="checkbox"]');
+    const nomeGrupo = tr.dataset.groupNome;
+    if (!chk || !nomeGrupo) return;
+
+    const itensGrupo = visiveis.filter(
+      i => (i[crit] || 'Sem especificação') === nomeGrupo
+    );
+    const selGrupo = itensGrupo.filter(i => selecionados.has(i.id)).length;
+
+    if (selGrupo === 0) {
+      chk.checked       = false;
+      chk.indeterminate = false;
+    } else if (selGrupo === itensGrupo.length) {
+      chk.checked       = true;
+      chk.indeterminate = false;
+    } else {
+      chk.checked       = false;
+      chk.indeterminate = true;
+    }
+  });
 }
 
 async function executarAcaoEmMassa() {
@@ -2168,6 +2266,9 @@ async function executarAcaoEmMassa() {
     if (error) { alert('Erro: ' + error.message); return; }
   }
   selecionados.clear();
+  // Reseta o select de ação para o estado neutro
+  const sel = document.getElementById('bulk-action-select');
+  if (sel) sel.value = '';
   await carregarDados();
 }
 
